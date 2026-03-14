@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { createServerSupabaseClient, createAdminSupabaseClient } from "@/lib/supabase/server";
+import { sendAppointmentConfirmation, sendNewBookingToBarber } from "@/lib/resend";
+import { format } from "date-fns";
+import { nl } from "date-fns/locale";
 import { z } from "zod";
 
 export const dynamic = "force-dynamic";
@@ -88,19 +91,47 @@ export async function POST(request: NextRequest) {
         status: "active",
       });
 
-      // Send confirmation email + push to customer (fire-and-forget)
-      fetch(`${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/api/notifications`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ event: "appointment_confirmed", appointment_id: appointment.id }),
-      }).catch((e) => console.error("Notification trigger error:", e));
+      // Send email notifications (async, don't block response)
+      (async () => {
+        try {
+          const admin = createAdminSupabaseClient();
+          const startsAtDate = new Date(starts_at);
+          const dateTimeStr = format(startsAtDate, "EEEE d MMMM yyyy 'om' HH:mm", { locale: nl });
+          const priceStr = new Intl.NumberFormat("nl-NL", { style: "currency", currency: "EUR" }).format(service.price_cents / 100);
 
-      // Push notification to barber about new booking
-      fetch(`${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/api/notifications`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ event: "new_booking", appointment_id: appointment.id }),
-      }).catch((e) => console.error("Barber notification error:", e));
+          // Fetch all needed data in parallel
+          const [customerAuth, barberAuth, customerProfile, barberProfile, serviceData] = await Promise.all([
+            admin.auth.admin.getUserById(user.id),
+            admin.auth.admin.getUserById(barber_id),
+            admin.from("profiles").select("full_name").eq("id", user.id).single(),
+            admin.from("profiles").select("full_name").eq("id", barber_id).single(),
+            admin.from("services").select("name").eq("id", service_id).single(),
+          ]);
+
+          const customerEmail = customerAuth.data?.user?.email;
+          const barberEmail = barberAuth.data?.user?.email;
+          const customerName = customerProfile.data?.full_name || "Klant";
+          const barberName = barberProfile.data?.full_name || "Kapper";
+          const serviceName = serviceData.data?.name || "Behandeling";
+
+          // Send confirmation email to customer
+          if (customerEmail) {
+            await sendAppointmentConfirmation({
+              customerName, customerEmail, barberName, serviceName,
+              dateTime: dateTimeStr, price: priceStr,
+            });
+            console.log("✅ Confirmation email sent to", customerEmail);
+          }
+
+          // Send new booking email to barber
+          if (barberEmail) {
+            await sendNewBookingToBarber(barberEmail, barberName, customerName, serviceName, dateTimeStr);
+            console.log("✅ New booking email sent to barber", barberEmail);
+          }
+        } catch (e) {
+          console.error("❌ Notification error:", e);
+        }
+      })();
     }
 
     return NextResponse.json({
