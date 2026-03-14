@@ -1,0 +1,56 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * {
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    @apply bg-background text-text-primary font-sans antialiased;
+    min-height: 100dvh;
+  }
+
+  /* Hide scrollbar on mobile for cleaner look */
+  ::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* Gold focus ring for accessibility */
+  :focus-visible {
+    @apply outline-2 outline-offset-2 outline-accent;
+  }
+}
+
+@layer components {
+  /* Primary CTA button — gold fill, black text, full width */
+  .btn-primary {
+    @apply w-full h-[50px] bg-accent text-background font-medium rounded-button
+           flex items-center justify-center transition-opacity
+           active:opacity-80 disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+
+  /* Secondary / outline button */
+  .btn-secondary {
+    @apply w-full h-[50px] bg-transparent border border-border text-text-primary
+           font-medium rounded-button flex items-center justify-center
+           transition-opacity active:opacity-80;
+  }
+
+  /* Card container */
+  .card {
+    @apply bg-background-card rounded-card border border-border p-4;
+  }
+
+  /* Input field */
+  .input-field {
+    @apply w-full h-12 bg-background-elevated text-text-primary rounded-input
+           border border-border px-4 placeholder:text-text-secondary
+           focus:border-accent focus:outline-none transition-colors;
+  }
+}

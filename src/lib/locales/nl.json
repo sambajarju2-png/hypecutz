@@ -1,0 +1,81 @@
+{
+  "app": {
+    "name": "Hypecutz",
+    "tagline": "Boek je kapper"
+  },
+  "nav": {
+    "home": "Home",
+    "book": "Boeken",
+    "appointments": "Afspraken",
+    "profile": "Profiel",
+    "dashboard": "Dashboard",
+    "agenda": "Agenda",
+    "chats": "Chats",
+    "settings": "Instellingen"
+  },
+  "auth": {
+    "login": "Inloggen",
+    "register": "Registreren",
+    "email": "E-mailadres",
+    "password": "Wachtwoord",
+    "forgotPassword": "Wachtwoord vergeten?",
+    "noAccount": "Nog geen account?",
+    "hasAccount": "Heb je al een account?",
+    "loginButton": "Inloggen",
+    "registerButton": "Account aanmaken",
+    "logout": "Uitloggen"
+  },
+  "booking": {
+    "stepBarber": "Kies je kapper",
+    "stepService": "Kies je behandeling",
+    "stepDateTime": "Kies datum en tijd",
+    "stepPayment": "Betaling",
+    "waitlist": "Wachtlijst",
+    "bookNow": "Boek nu",
+    "next": "Volgende",
+    "back": "Terug",
+    "confirm": "Bevestigen",
+    "payNow": "Betaal nu",
+    "payInStore": "Betaal in de winkel",
+    "useCredits": "Gebruik credits",
+    "fullyBooked": "Volgeboekt"
+  },
+  "appointments": {
+    "upcoming": "Aankomend",
+    "past": "Verleden",
+    "cancel": "Annuleren",
+    "reschedule": "Wijzigen",
+    "showLocation": "Toon locatie",
+    "review": "Beoordeel je kapper",
+    "noAppointments": "Geen afspraken",
+    "chatClosed": "Chat gesloten"
+  },
+  "common": {
+    "save": "Opslaan",
+    "cancel": "Annuleren",
+    "delete": "Verwijderen",
+    "edit": "Bewerken",
+    "loading": "Laden...",
+    "error": "Er is iets misgegaan",
+    "success": "Gelukt!",
+    "minutes": "min",
+    "hours": "uur"
+  },
+  "admin": {
+    "dashboard": "Dashboard",
+    "appointments": "Afspraken",
+    "cancellations": "Annuleringen & No-Shows",
+    "barbers": "Kappers",
+    "reviews": "Reviews",
+    "feed": "Feed",
+    "credits": "Credits",
+    "settings": "Instellingen",
+    "revenueToday": "Omzet vandaag",
+    "revenueWeek": "Omzet deze week",
+    "revenueMonth": "Omzet deze maand",
+    "appointmentsToday": "Afspraken vandaag",
+    "occupancy": "Bezettingsgraad",
+    "avgRating": "Gemiddelde beoordeling",
+    "exportCsv": "Exporteer CSV"
+  }
+}
