@@ -2,7 +2,6 @@
 
 import { Suspense, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import Image from "next/image";
 import { createClient } from "@/lib/supabase/client";
 
 type AuthMode = "login" | "register" | "forgot";
@@ -164,13 +163,10 @@ function LoginContent() {
   return (
     <div className="flex flex-col items-center gap-8">
       {/* Logo */}
-      <Image
-        src="/logo.svg"
-        alt="Hypecutz"
-        width={200}
-        height={60}
-        priority
-      />
+      <div className="text-center">
+        <h2 className="text-3xl font-bold text-accent tracking-[4px]">HYPECUTZ</h2>
+        <p className="text-[10px] text-text-secondary tracking-[5px] mt-1">ROTTERDAM</p>
+      </div>
 
       <form
         onSubmit={mode === "login" ? handleLogin : mode === "register" ? handleRegister : handleForgotPassword}

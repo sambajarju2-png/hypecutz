@@ -3,16 +3,17 @@
 import { useEffect, useState, useCallback } from "react";
 import { useAuth } from "@/components/AuthProvider";
 import { createClient } from "@/lib/supabase/client";
-import { LogOut, Loader2 } from "lucide-react";
+import { LogOut, Loader2, Megaphone } from "lucide-react";
 import { format } from "date-fns";
 import { nl } from "date-fns/locale";
 import Link from "next/link";
+import Logo from "@/components/ui/Logo";
 
 interface FeedPost {
   id: string;
-  image_url: string;
+  image_url: string | null;
   caption: string | null;
-  is_before_after: boolean;
+  post_type: "photo" | "announcement";
   created_at: string;
   barber: { id: string; full_name: string; avatar_url: string | null } | null;
   reactions: { emoji: string; user_id: string }[];
@@ -27,17 +28,16 @@ export default function CustomerHomePage() {
   const [loading, setLoading] = useState(true);
 
   const fetchFeed = useCallback(async () => {
-    setLoading(true);
     const { data } = await supabase
       .from("feed_posts")
       .select(`
-        id, image_url, caption, is_published, created_at,
+        id, image_url, caption, post_type, created_at,
         barber:profiles!feed_posts_barber_id_fkey(id, full_name, avatar_url),
         reactions:feed_reactions(emoji, user_id)
       `)
       .eq("is_published", true)
       .order("created_at", { ascending: false })
-      .limit(20);
+      .limit(30);
 
     setPosts((data as unknown as FeedPost[]) || []);
     setLoading(false);
@@ -48,27 +48,30 @@ export default function CustomerHomePage() {
   async function toggleReaction(postId: string, emoji: string) {
     if (!profile?.id) return;
 
-    // Check if user already reacted with this emoji
-    const existing = posts
-      .find((p) => p.id === postId)
-      ?.reactions.find((r) => r.user_id === profile.id && r.emoji === emoji);
+    const post = posts.find((p) => p.id === postId);
+    if (!post) return;
 
+    const existing = post.reactions.find((r) => r.user_id === profile.id && r.emoji === emoji);
+
+    // Optimistic update — update UI immediately, no page refresh
+    setPosts((prev) =>
+      prev.map((p) => {
+        if (p.id !== postId) return p;
+        if (existing) {
+          return { ...p, reactions: p.reactions.filter((r) => !(r.user_id === profile!.id && r.emoji === emoji)) };
+        } else {
+          return { ...p, reactions: [...p.reactions, { emoji, user_id: profile!.id }] };
+        }
+      })
+    );
+
+    // Fire DB update in background
     if (existing) {
-      await supabase
-        .from("feed_reactions")
-        .delete()
-        .eq("post_id", postId)
-        .eq("user_id", profile.id)
-        .eq("emoji", emoji);
+      await supabase.from("feed_reactions").delete()
+        .eq("post_id", postId).eq("user_id", profile.id).eq("emoji", emoji);
     } else {
-      await supabase.from("feed_reactions").insert({
-        post_id: postId,
-        user_id: profile.id,
-        emoji,
-      });
+      await supabase.from("feed_reactions").insert({ post_id: postId, user_id: profile.id, emoji });
     }
-
-    fetchFeed();
   }
 
   if (authLoading) {
@@ -85,13 +88,14 @@ export default function CustomerHomePage() {
       <div className="flex items-center justify-between">
         <div>
           <p className="text-text-secondary text-sm">Welkom terug,</p>
-          <h1 className="text-xl font-bold text-text-primary">
-            {profile?.full_name || "Klant"}
-          </h1>
+          <h1 className="text-xl font-bold text-text-primary">{profile?.full_name || "Klant"}</h1>
         </div>
-        <button onClick={signOut} className="p-2 rounded-button hover:bg-background-elevated transition-colors" aria-label="Uitloggen">
-          <LogOut size={20} className="text-text-secondary" />
-        </button>
+        <div className="flex items-center gap-2">
+          <Logo size="sm" showSubtitle={false} />
+          <button onClick={signOut} className="p-2 rounded-button hover:bg-background-elevated transition-colors" aria-label="Uitloggen">
+            <LogOut size={20} className="text-text-secondary" />
+          </button>
+        </div>
       </div>
 
       {/* Quick book CTA */}
@@ -109,25 +113,57 @@ export default function CustomerHomePage() {
           </div>
         ) : posts.length === 0 ? (
           <div className="card">
-            <p className="text-text-secondary text-sm text-center">
-              Nog geen posts van kappers. Kom later terug!
-            </p>
+            <p className="text-text-secondary text-sm text-center">Nog geen posts. Kom later terug!</p>
           </div>
         ) : (
           posts.map((post) => {
-            // Count reactions by emoji
             const reactionCounts: Record<string, { count: number; mine: boolean }> = {};
             for (const r of post.reactions) {
-              if (!reactionCounts[r.emoji]) {
-                reactionCounts[r.emoji] = { count: 0, mine: false };
-              }
+              if (!reactionCounts[r.emoji]) reactionCounts[r.emoji] = { count: 0, mine: false };
               reactionCounts[r.emoji].count++;
               if (r.user_id === profile?.id) reactionCounts[r.emoji].mine = true;
             }
 
+            // Announcement post
+            if (post.post_type === "announcement") {
+              return (
+                <div key={post.id} className="card border-accent/30 bg-accent/5">
+                  <div className="flex items-start gap-3">
+                    <div className="w-8 h-8 bg-accent/20 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                      <Megaphone size={14} className="text-accent" />
+                    </div>
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="text-xs font-medium text-accent">{post.barber?.full_name}</span>
+                        <span className="text-[10px] text-text-secondary">
+                          {format(new Date(post.created_at), "d MMM", { locale: nl })}
+                        </span>
+                      </div>
+                      <p className="text-sm text-text-primary leading-relaxed">{post.caption}</p>
+                    </div>
+                  </div>
+                  {/* Emoji reactions */}
+                  <div className="flex items-center gap-1.5 flex-wrap mt-3 pl-11">
+                    {QUICK_EMOJIS.map((emoji) => {
+                      const data = reactionCounts[emoji];
+                      return (
+                        <button key={emoji} onClick={() => toggleReaction(post.id, emoji)}
+                          className={`flex items-center gap-1 px-2 py-1 rounded-full text-xs transition-colors ${
+                            data?.mine ? "bg-accent/20 border border-accent/40" : "bg-background-elevated hover:bg-background-elevated/80"
+                          }`}>
+                          <span>{emoji}</span>
+                          {data && data.count > 0 && <span className="text-text-secondary">{data.count}</span>}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            }
+
+            // Photo post
             return (
               <div key={post.id} className="card !p-0 overflow-hidden">
-                {/* Barber header */}
                 <div className="flex items-center gap-3 p-3">
                   <Link href={`/barber/${post.barber?.id}`} className="flex items-center gap-3">
                     <div className="w-8 h-8 rounded-full bg-background-elevated overflow-hidden flex items-center justify-center">
@@ -135,50 +171,35 @@ export default function CustomerHomePage() {
                         // eslint-disable-next-line @next/next/no-img-element
                         <img src={post.barber.avatar_url} alt="" className="w-full h-full object-cover" />
                       ) : (
-                        <span className="text-xs font-bold text-accent">
-                          {post.barber?.full_name?.[0] || "?"}
-                        </span>
+                        <span className="text-xs font-bold text-accent">{post.barber?.full_name?.[0] || "?"}</span>
                       )}
                     </div>
                     <div>
                       <p className="text-sm font-medium text-text-primary">{post.barber?.full_name}</p>
-                      <p className="text-[10px] text-text-secondary">
-                        {format(new Date(post.created_at), "d MMM yyyy", { locale: nl })}
-                      </p>
+                      <p className="text-[10px] text-text-secondary">{format(new Date(post.created_at), "d MMM yyyy", { locale: nl })}</p>
                     </div>
                   </Link>
                 </div>
 
-                {/* Image */}
-                <div className="aspect-square bg-background-elevated">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={post.image_url} alt="" className="w-full h-full object-cover" />
-                </div>
+                {post.image_url && (
+                  <div className="aspect-square bg-background-elevated">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={post.image_url} alt="" className="w-full h-full object-cover" />
+                  </div>
+                )}
 
-                {/* Caption + reactions */}
                 <div className="p-3 space-y-2">
-                  {post.caption && (
-                    <p className="text-sm text-text-primary">{post.caption}</p>
-                  )}
-
-                  {/* Emoji reactions */}
+                  {post.caption && <p className="text-sm text-text-primary">{post.caption}</p>}
                   <div className="flex items-center gap-1.5 flex-wrap">
                     {QUICK_EMOJIS.map((emoji) => {
                       const data = reactionCounts[emoji];
                       return (
-                        <button
-                          key={emoji}
-                          onClick={() => toggleReaction(post.id, emoji)}
+                        <button key={emoji} onClick={() => toggleReaction(post.id, emoji)}
                           className={`flex items-center gap-1 px-2 py-1 rounded-full text-xs transition-colors ${
-                            data?.mine
-                              ? "bg-accent/20 border border-accent/40"
-                              : "bg-background-elevated hover:bg-background-elevated/80"
-                          }`}
-                        >
+                            data?.mine ? "bg-accent/20 border border-accent/40" : "bg-background-elevated hover:bg-background-elevated/80"
+                          }`}>
                           <span>{emoji}</span>
-                          {data && data.count > 0 && (
-                            <span className="text-text-secondary">{data.count}</span>
-                          )}
+                          {data && data.count > 0 && <span className="text-text-secondary">{data.count}</span>}
                         </button>
                       );
                     })}

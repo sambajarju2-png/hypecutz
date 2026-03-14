@@ -3,9 +3,10 @@
 import { useEffect, useState, useCallback } from "react";
 import { useAuth } from "@/components/AuthProvider";
 import { createClient } from "@/lib/supabase/client";
-import { Loader2, MapPin, Clock, MessageCircle } from "lucide-react";
+import { Loader2, MapPin, Clock, MessageCircle, CreditCard } from "lucide-react";
 import { format, isPast } from "date-fns";
 import { nl } from "date-fns/locale";
+import EnterCreditCode from "@/components/credits/EnterCreditCode";
 
 interface AppointmentWithDetails {
   id: string;
@@ -45,6 +46,7 @@ export default function AppointmentsPage() {
   const [appointments, setAppointments] = useState<AppointmentWithDetails[]>([]);
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState<"upcoming" | "past">("upcoming");
+  const [showCreditCode, setShowCreditCode] = useState<string | null>(null);
 
   const fetchAppointments = useCallback(async () => {
     if (!profile?.id) return;
@@ -163,21 +165,39 @@ export default function AppointmentsPage() {
 
               {/* Actions for upcoming */}
               {tab === "upcoming" && apt.status === "confirmed" && (
-                <div className="flex gap-2 pt-1">
-                  <a
-                    href={getMapLink()}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center gap-1 px-3 py-1.5 text-[10px] bg-background-elevated text-text-primary rounded-button hover:bg-accent/10 transition-colors"
-                  >
-                    <MapPin size={12} /> Toon locatie
-                  </a>
-                  <a
-                    href={`/chat/${apt.id}`}
-                    className="flex items-center gap-1 px-3 py-1.5 text-[10px] bg-background-elevated text-text-primary rounded-button hover:bg-accent/10 transition-colors"
-                  >
-                    <MessageCircle size={12} /> Chat
-                  </a>
+                <div className="space-y-2 pt-1">
+                  <div className="flex gap-2">
+                    <a
+                      href={getMapLink()}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-1 px-3 py-1.5 text-[10px] bg-background-elevated text-text-primary rounded-button hover:bg-accent/10 transition-colors"
+                    >
+                      <MapPin size={12} /> Toon locatie
+                    </a>
+                    <a
+                      href={`/chat/${apt.id}`}
+                      className="flex items-center gap-1 px-3 py-1.5 text-[10px] bg-background-elevated text-text-primary rounded-button hover:bg-accent/10 transition-colors"
+                    >
+                      <MessageCircle size={12} /> Chat
+                    </a>
+                    {apt.payment_method === "credits" && apt.payment_status !== "paid" && (
+                      <button
+                        onClick={() => setShowCreditCode(showCreditCode === apt.id ? null : apt.id)}
+                        className="flex items-center gap-1 px-3 py-1.5 text-[10px] bg-accent/10 text-accent rounded-button hover:bg-accent/20 transition-colors"
+                      >
+                        <CreditCard size={12} /> Betaal met credits
+                      </button>
+                    )}
+                  </div>
+                  {/* Credit code entry */}
+                  {showCreditCode === apt.id && apt.service && (
+                    <EnterCreditCode
+                      appointmentId={apt.id}
+                      servicePriceCents={apt.service.price_cents}
+                      onComplete={() => { setShowCreditCode(null); fetchAppointments(); }}
+                    />
+                  )}
                 </div>
               )}
             </div>

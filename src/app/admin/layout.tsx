@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
+import Logo from "@/components/ui/Logo";
 import {
   LayoutDashboard,
   CalendarDays,
@@ -54,8 +55,7 @@ export default function AdminLayout({
       >
         {/* Logo area */}
         <div className="flex items-center justify-between h-16 px-4 border-b border-border">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/logo.svg" alt="Hypecutz" className="h-7" />
+          <Logo size="sm" showSubtitle={false} />
           <button
             onClick={() => setSidebarOpen(false)}
             className="lg:hidden text-text-secondary"
@@ -98,8 +98,7 @@ export default function AdminLayout({
           >
             <Menu size={24} />
           </button>
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/logo.svg" alt="Hypecutz" className="ml-4 h-6" />
+          <div className="ml-4"><Logo size="sm" showSubtitle={false} /></div>
         </header>
 
         <main className="flex-1 p-4 lg:p-6">{children}</main>

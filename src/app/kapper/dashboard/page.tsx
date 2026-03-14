@@ -7,11 +7,15 @@ import { LogOut, Calendar, Star, Scissors, User, Clock } from "lucide-react";
 import { format, startOfDay, endOfDay } from "date-fns";
 import { nl } from "date-fns/locale";
 
+import RedeemCredits from "@/components/credits/RedeemCredits";
+
 interface TodayAppointment {
   id: string;
   starts_at: string;
   ends_at: string;
   status: string;
+  payment_method: string;
+  payment_status: string;
   customer: { full_name: string } | null;
   service: { name: string; price_cents: number } | null;
 }
@@ -22,6 +26,7 @@ export default function BarberDashboardPage() {
   const [todayAppts, setTodayAppts] = useState<TodayAppointment[]>([]);
   const [serviceCount, setServiceCount] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [showRedeem, setShowRedeem] = useState<string | null>(null);
 
   const fetchData = useCallback(async () => {
     if (!profile?.id) return;
@@ -31,7 +36,7 @@ export default function BarberDashboardPage() {
     const [apptsRes, servicesRes] = await Promise.all([
       supabase
         .from("appointments")
-        .select("id, starts_at, ends_at, status, customer:profiles!appointments_customer_id_fkey(full_name), service:services(name, price_cents)")
+        .select("id, starts_at, ends_at, status, payment_method, payment_status, customer:profiles!appointments_customer_id_fkey(full_name), service:services(name, price_cents)")
         .eq("barber_id", profile.id)
         .gte("starts_at", startOfDay(now).toISOString())
         .lte("starts_at", endOfDay(now).toISOString())
@@ -122,23 +127,38 @@ export default function BarberDashboardPage() {
         ) : (
           <div className="space-y-2">
             {todayAppts.map((apt) => (
-              <div key={apt.id} className="card flex items-center gap-3">
-                <div className="w-10 h-10 bg-accent/10 rounded-full flex items-center justify-center">
-                  <Clock size={16} className="text-accent" />
+              <div key={apt.id} className="card space-y-3">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-accent/10 rounded-full flex items-center justify-center">
+                    <Clock size={16} className="text-accent" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-text-primary truncate">
+                      {apt.customer?.full_name || "Klant"}
+                    </p>
+                    <p className="text-xs text-text-secondary">
+                      {format(new Date(apt.starts_at), "HH:mm", { locale: nl })} · {apt.service?.name || "—"}
+                    </p>
+                  </div>
+                  <div className="flex flex-col items-end gap-1">
+                    <span className={`text-[10px] px-2 py-1 rounded-full font-medium ${
+                      apt.status === "completed" ? "bg-success/10 text-success" : "bg-accent/10 text-accent"
+                    }`}>
+                      {apt.status === "completed" ? "Klaar" : "Bevestigd"}
+                    </span>
+                    {apt.payment_method === "credits" && apt.payment_status !== "paid" && (
+                      <button
+                        onClick={() => setShowRedeem(showRedeem === apt.id ? null : apt.id)}
+                        className="text-[10px] px-2 py-1 bg-accent/10 text-accent rounded-full font-medium"
+                      >
+                        Verzilver credits
+                      </button>
+                    )}
+                  </div>
                 </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-text-primary truncate">
-                    {apt.customer?.full_name || "Klant"}
-                  </p>
-                  <p className="text-xs text-text-secondary">
-                    {format(new Date(apt.starts_at), "HH:mm", { locale: nl })} · {apt.service?.name || "—"}
-                  </p>
-                </div>
-                <span className={`text-[10px] px-2 py-1 rounded-full font-medium ${
-                  apt.status === "completed" ? "bg-success/10 text-success" : "bg-accent/10 text-accent"
-                }`}>
-                  {apt.status === "completed" ? "Klaar" : "Bevestigd"}
-                </span>
+                {showRedeem === apt.id && (
+                  <RedeemCredits appointmentId={apt.id} onComplete={() => { setShowRedeem(null); fetchData(); }} />
+                )}
               </div>
             ))}
           </div>
