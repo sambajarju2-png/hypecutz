@@ -165,7 +165,7 @@ function LoginContent() {
     <div className="flex flex-col items-center gap-8">
       {/* Logo */}
       <Image
-        src="/logo-placeholder.svg"
+        src="/logo.svg"
         alt="Hypecutz"
         width={200}
         height={60}

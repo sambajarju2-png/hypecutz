@@ -11,8 +11,8 @@ function getResend(): Resend {
   return resendClient;
 }
 
-const FROM_EMAIL = process.env.RESEND_FROM_EMAIL || "noreply@hypecutz.nl";
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "https://hypecutz.nl";
+const FROM_EMAIL = process.env.RESEND_FROM_EMAIL || "noreply@hypesamba.com";
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "https://hypesamba.com";
 
 function baseTemplate(title: string, body: string): string {
   return `
