@@ -54,7 +54,8 @@ export default function AdminLayout({
       >
         {/* Logo area */}
         <div className="flex items-center justify-between h-16 px-4 border-b border-border">
-          <span className="text-accent font-bold text-lg">Hypecutz</span>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/logo.svg" alt="Hypecutz" className="h-7" />
           <button
             onClick={() => setSidebarOpen(false)}
             className="lg:hidden text-text-secondary"
@@ -97,7 +98,8 @@ export default function AdminLayout({
           >
             <Menu size={24} />
           </button>
-          <span className="ml-4 text-accent font-bold text-lg">Hypecutz</span>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/logo.svg" alt="Hypecutz" className="ml-4 h-6" />
         </header>
 
         <main className="flex-1 p-4 lg:p-6">{children}</main>

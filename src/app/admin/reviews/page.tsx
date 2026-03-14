@@ -4,7 +4,6 @@ import { useEffect, useState, useCallback } from "react";
 import { Loader2, Eye, EyeOff, Star } from "lucide-react";
 import { format } from "date-fns";
 import { nl } from "date-fns/locale";
-import { createClient } from "@/lib/supabase/client";
 
 interface Review {
   id: string;
@@ -21,23 +20,14 @@ interface Review {
 export default function AdminReviewsPage() {
   const [reviews, setReviews] = useState<Review[]>([]);
   const [loading, setLoading] = useState(true);
-  const supabase = createClient();
 
   const fetchReviews = useCallback(async () => {
     setLoading(true);
-    // Admin reads all reviews — RLS allows reading visible ones,
-    // but hidden ones need server-side query. For now, show visible ones.
-    const { data } = await supabase
-      .from("reviews")
-      .select(`
-        id, rating, comment, barber_reply, is_anonymous, is_hidden, created_at,
-        customer:profiles!reviews_customer_id_fkey(full_name),
-        barber:profiles!reviews_barber_id_fkey(full_name)
-      `)
-      .order("created_at", { ascending: false });
-    setReviews((data as unknown as Review[]) || []);
+    const res = await fetch("/api/admin/reviews");
+    const data = await res.json();
+    setReviews(data.reviews || []);
     setLoading(false);
-  }, [supabase]);
+  }, []);
 
   useEffect(() => { fetchReviews(); }, [fetchReviews]);
 
@@ -72,12 +62,8 @@ export default function AdminReviewsPage() {
                   <p className="text-xs text-text-secondary mb-1">
                     Kapper: {review.barber?.full_name || "—"} · {format(new Date(review.created_at), "d MMM yyyy", { locale: nl })}
                   </p>
-                  {review.comment && (
-                    <p className="text-sm text-text-primary">{review.comment}</p>
-                  )}
-                  {review.barber_reply && (
-                    <p className="text-xs text-accent mt-1">↪ {review.barber_reply}</p>
-                  )}
+                  {review.comment && <p className="text-sm text-text-primary">{review.comment}</p>}
+                  {review.barber_reply && <p className="text-xs text-accent mt-1">↪ {review.barber_reply}</p>}
                 </div>
                 <span className={`text-[10px] px-2 py-1 rounded-full ${review.is_hidden ? "bg-danger/10 text-danger" : "bg-success/10 text-success"}`}>
                   {review.is_hidden ? <EyeOff size={12} /> : <Eye size={12} />}

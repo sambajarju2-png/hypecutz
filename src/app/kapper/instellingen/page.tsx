@@ -79,7 +79,21 @@ export default function BarberSettingsPage() {
 
         <div className="card space-y-2">
           <h2 className="text-sm font-medium text-text-primary">Notificaties</h2>
-          <p className="text-xs text-text-secondary">Push- en emailnotificaties worden geconfigureerd in Phase 8.</p>
+          <p className="text-xs text-text-secondary">Je ontvangt automatisch meldingen bij:</p>
+          <div className="space-y-1.5 mt-2">
+            <div className="flex items-center gap-2">
+              <div className="w-1.5 h-1.5 rounded-full bg-accent" />
+              <span className="text-xs text-text-primary">Nieuwe boeking van een klant</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-1.5 h-1.5 rounded-full bg-accent" />
+              <span className="text-xs text-text-primary">Nieuw chatbericht</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-1.5 h-1.5 rounded-full bg-accent" />
+              <span className="text-xs text-text-primary">Nieuwe review</span>
+            </div>
+          </div>
         </div>
 
         <button type="submit" className="btn-primary" disabled={saving}>

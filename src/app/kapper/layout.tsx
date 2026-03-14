@@ -3,14 +3,15 @@
 import { useEffect } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
-import { LayoutDashboard, Calendar, MessageCircle, Settings } from "lucide-react";
+import { LayoutDashboard, Calendar, Image, MessageCircle, Settings } from "lucide-react";
 import { useAuth } from "@/components/AuthProvider";
 
 const NAV_ITEMS = [
-  { href: "/kapper/dashboard", label: "Dashboard", icon: LayoutDashboard },
+  { href: "/kapper/dashboard", label: "Home", icon: LayoutDashboard },
   { href: "/kapper/agenda", label: "Agenda", icon: Calendar },
+  { href: "/kapper/feed", label: "Feed", icon: Image },
   { href: "/kapper/chats", label: "Chats", icon: MessageCircle },
-  { href: "/kapper/instellingen", label: "Instellingen", icon: Settings },
+  { href: "/kapper/instellingen", label: "Meer", icon: Settings },
 ] as const;
 
 export default function BarberLayout({
