@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Image from "next/image";
 import { createClient } from "@/lib/supabase/client";
 
-type AuthMode = "login" | "register";
+type AuthMode = "login" | "register" | "forgot";
 
 function LoginContent() {
   const router = useRouter();
@@ -18,6 +18,7 @@ function LoginContent() {
   const [fullName, setFullName] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [resetSent, setResetSent] = useState(false);
 
   const supabase = createClient();
 
@@ -131,6 +132,35 @@ function LoginContent() {
     router.refresh();
   }
 
+  async function handleForgotPassword(e: React.FormEvent) {
+    e.preventDefault();
+    setLoading(true);
+    setError(null);
+    setResetSent(false);
+
+    if (!email.trim()) {
+      setError("Vul je e-mailadres in.");
+      setLoading(false);
+      return;
+    }
+
+    const { error: resetError } = await supabase.auth.resetPasswordForEmail(
+      email,
+      {
+        redirectTo: `${window.location.origin}/login`,
+      }
+    );
+
+    if (resetError) {
+      setError(resetError.message);
+      setLoading(false);
+      return;
+    }
+
+    setResetSent(true);
+    setLoading(false);
+  }
+
   return (
     <div className="flex flex-col items-center gap-8">
       {/* Logo */}
@@ -143,22 +173,31 @@ function LoginContent() {
       />
 
       <form
-        onSubmit={mode === "login" ? handleLogin : handleRegister}
+        onSubmit={mode === "login" ? handleLogin : mode === "register" ? handleRegister : handleForgotPassword}
         className="w-full space-y-4"
       >
         <h1 className="text-2xl font-bold text-text-primary text-center">
-          {mode === "login" ? "Inloggen" : "Account aanmaken"}
+          {mode === "login" ? "Inloggen" : mode === "register" ? "Account aanmaken" : "Wachtwoord vergeten"}
         </h1>
         <p className="text-text-secondary text-center text-sm">
           {mode === "login"
             ? "Welkom bij Hypecutz. Log in om verder te gaan."
-            : "Maak een account aan om afspraken te boeken."}
+            : mode === "register"
+            ? "Maak een account aan om afspraken te boeken."
+            : "Vul je e-mailadres in om een resetlink te ontvangen."}
         </p>
 
         {/* Error message */}
         {error && (
           <div className="bg-danger/10 border border-danger/30 rounded-input px-4 py-3 text-danger text-sm">
             {error}
+          </div>
+        )}
+
+        {/* Reset sent success */}
+        {resetSent && (
+          <div className="bg-success/10 border border-success/30 rounded-input px-4 py-3 text-success text-sm">
+            Resetlink verstuurd! Controleer je e-mail.
           </div>
         )}
 
@@ -185,16 +224,31 @@ function LoginContent() {
             required
             autoComplete="email"
           />
-          <input
-            type="password"
-            placeholder="Wachtwoord"
-            className="input-field"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-            autoComplete={mode === "login" ? "current-password" : "new-password"}
-            minLength={6}
-          />
+          {mode !== "forgot" && (
+            <input
+              type="password"
+              placeholder="Wachtwoord"
+              className="input-field"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+              autoComplete={mode === "login" ? "current-password" : "new-password"}
+              minLength={6}
+            />
+          )}
+
+          {/* Forgot password link — only on login */}
+          {mode === "login" && (
+            <div className="text-right">
+              <button
+                type="button"
+                onClick={() => { setMode("forgot"); setError(null); setResetSent(false); }}
+                className="text-accent text-xs hover:underline"
+              >
+                Wachtwoord vergeten?
+              </button>
+            </div>
+          )}
 
           <button
             type="submit"
@@ -224,8 +278,10 @@ function LoginContent() {
               </svg>
             ) : mode === "login" ? (
               "Inloggen"
-            ) : (
+            ) : mode === "register" ? (
               "Account aanmaken"
+            ) : (
+              "Verstuur resetlink"
             )}
           </button>
         </div>
@@ -247,12 +303,13 @@ function LoginContent() {
             </>
           ) : (
             <>
-              Heb je al een account?{" "}
+              Terug naar{" "}
               <button
                 type="button"
                 onClick={() => {
                   setMode("login");
                   setError(null);
+                  setResetSent(false);
                 }}
                 className="text-accent hover:underline"
               >

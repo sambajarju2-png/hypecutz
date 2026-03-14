@@ -87,6 +87,20 @@ export async function POST(request: NextRequest) {
         appointment_id: appointment.id,
         status: "active",
       });
+
+      // Send confirmation email + push to customer (fire-and-forget)
+      fetch(`${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/api/notifications`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ event: "appointment_confirmed", appointment_id: appointment.id }),
+      }).catch((e) => console.error("Notification trigger error:", e));
+
+      // Push notification to barber about new booking
+      fetch(`${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/api/notifications`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ event: "new_booking", appointment_id: appointment.id }),
+      }).catch((e) => console.error("Barber notification error:", e));
     }
 
     return NextResponse.json({

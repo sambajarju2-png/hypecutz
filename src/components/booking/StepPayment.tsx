@@ -71,8 +71,26 @@ export default function StepPayment() {
       }
 
       if (data.requires_payment) {
-        // Phase 7: redirect to Mollie
-        setError("Online betaling wordt gekoppeld in Phase 7. Kies 'Betaal in de winkel' om te testen.");
+        // Create Mollie payment and redirect to checkout
+        const payRes = await fetch("/api/payments", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ appointment_id: data.appointment_id }),
+        });
+        const payData = await payRes.json();
+
+        if (!payRes.ok) {
+          setError(payData.error || "Betaling aanmaken mislukt. Controleer of MOLLIE_API_KEY is ingesteld.");
+          setLoading(false);
+          return;
+        }
+
+        if (payData.checkout_url) {
+          window.location.href = payData.checkout_url;
+          return;
+        }
+
+        setError("Geen betaallink ontvangen");
         setLoading(false);
         return;
       }

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServerSupabaseClient, createAdminSupabaseClient } from "@/lib/supabase/server";
+import { sendBarberInvite } from "@/lib/resend";
 import { z } from "zod";
 
 const InviteSchema = z.object({
@@ -104,14 +105,20 @@ export async function POST(request: NextRequest) {
       await adminClient.from("barber_schedules").insert(defaultSchedule);
     }
 
-    // 5. Return success with temp credentials
-    // NOTE: In Phase 8, this will also send an invite email via Resend
+    // 5. Send invite email via Resend
+    try {
+      await sendBarberInvite(email, full_name, tempPassword);
+    } catch (emailError) {
+      console.error("Invite email error:", emailError);
+      // Don't fail the whole invite if email fails
+    }
+
     return NextResponse.json({
       success: true,
       barber_id: newUser.user?.id,
       email,
       temp_password: tempPassword,
-      message: `Kapper ${full_name} is uitgenodigd. Tijdelijk wachtwoord: ${tempPassword}. Resend email wordt gekoppeld in Phase 8.`,
+      message: `Kapper ${full_name} is uitgenodigd. Uitnodiging is per e-mail verstuurd.`,
     });
   } catch (error) {
     console.error("Invite barber error:", error);
